@@ -1,76 +1,62 @@
 import threading
 import time
- 
-# Shared Memory variables
-CAPACITY = int(input("Please enter the capacity: "))
-print("\n")
-buffer = [-1 for i in range(CAPACITY)]
+import random
+
+# Shared memory variables
+BUFFER_SIZE = 5
+buffer = []
 in_index = 0
 out_index = 0
- 
-# Declaring Semaphores
+
+# Declaring semaphores
 mutex = threading.Semaphore()
-empty = threading.Semaphore(CAPACITY)
+empty = threading.Semaphore(BUFFER_SIZE)
 full = threading.Semaphore(0)
- 
-# Producer Thread Class
-class Producer(threading.Thread):
-  def run(self):
-     
-    global CAPACITY, buffer, in_index, out_index
-    global mutex, empty, full
-     
-    items_produced = 0
-    counter = 0
-     
-    while items_produced < CAPACITY:
-      empty.acquire()
-      mutex.acquire()
-       
-      counter += 1
-      buffer[in_index] = counter
-      in_index = (in_index + 1)%CAPACITY
-      print("Producer produced: ", counter, "\n")
-       
-      mutex.release()
-      full.release()
-       
-      time.sleep(1)
-       
-      items_produced += 1
- 
-# Consumer Thread Class
-class Consumer(threading.Thread):
-  def run(self):
-     
-    global CAPACITY, buffer, in_index, out_index, counter
-    global mutex, empty, full
-     
-    items_consumed = 0
-     
-    while items_consumed < CAPACITY:
-      full.acquire()
-      mutex.acquire()
-       
-      item = buffer[out_index]
-      out_index = (out_index + 1)%CAPACITY
-      print("Consumer consumed item: ", item, "\n")
-       
-      mutex.release()
-      empty.release()      
-       
-      time.sleep(2.5)
-       
-      items_consumed += 1
- 
+
+# Producer Thread Function
+def producer():
+    global buffer, in_index
+    
+    for i in range(10):
+        item = random.randint(1, 100)
+        empty.acquire()
+        mutex.acquire()
+        
+        buffer.append(item)
+        in_index = (in_index + 1) % BUFFER_SIZE
+        print(f'Producer produced item: {item}')
+        
+        mutex.release()
+        full.release()
+        
+        time.sleep(random.random())
+
+# Consumer Thread Function
+def consumer():
+    global buffer, out_index
+    
+    for i in range(10):
+        full.acquire()
+        mutex.acquire()
+        
+        item = buffer[out_index]
+        out_index = (out_index + 1) % BUFFER_SIZE
+        print(f'Consumer consumed item: {item}')
+        buffer.remove(item)
+        
+        mutex.release()
+        empty.release()
+        
+        time.sleep(random.random())
+
 # Creating Threads
-producer = Producer()
-consumer = Consumer()
- 
+producer_thread = threading.Thread(target=producer)
+consumer_thread = threading.Thread(target=consumer)
+
 # Starting Threads
-consumer.start()
-producer.start()
- 
+producer_thread.start()
+consumer_thread.start()
+
 # Waiting for threads to complete
-producer.join()
-consumer.join()
+producer_thread.join()
+consumer_thread.join()
